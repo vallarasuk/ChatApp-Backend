@@ -98,3 +98,5 @@ out/
 
 # Stylelint cache
 .stylelintcache
+
+./package-lock.json
