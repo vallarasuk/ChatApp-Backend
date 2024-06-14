@@ -1,17 +1,13 @@
 const express = require("express");
 const userService = require("../services/userServices");
-
+const { requestLogger } = require("../middleware/requestLogger");  
 const router = express.Router();
 
-// Middleware to log the HTTP method and the URL of each request
-router.use((req, res, next) => {
-  console.log(`Received ${req.method} request for ${req.url}`);
-  next(); // Call the next middleware or route handler
-});
+// Middleware to log HTTP requests
+router.use(requestLogger);
 
 // Route to create a new user (POST /api/users)
 router.post("/users", async (req, res) => {
-  console.log(req.body);
   const { username, email, password, re_password } = req.body;
 
   // Call userService to create user
@@ -24,6 +20,21 @@ router.post("/users", async (req, res) => {
 
   if (result.success) {
     res.status(201).json({ message: result.message });
+  } else {
+    res.status(400).json({ errors: result.error });
+  }
+});
+
+// Route to update a user by ID (PUT /api/users/:id)
+router.put("/users/:id", async (req, res) => {
+  const userId = req.params.id;
+  const { username, email } = req.body;
+
+  // Call userService to update user
+  const result = await userService.updateUser(userId, username, email);
+
+  if (result.success) {
+    res.status(200).json({ message: result.message });
   } else {
     res.status(400).json({ errors: result.error });
   }
@@ -45,7 +56,6 @@ router.get("/users/:id", async (req, res) => {
 
 // Route to delete a user by ID (DELETE /api/users/:id)
 router.delete("/users/:id", async (req, res) => {
-    console.log(req)
   const userId = req.params.id;
 
   // Call userService to delete user
