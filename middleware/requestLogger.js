@@ -55,7 +55,8 @@ function errorLogger(err, req, res, next) {
     });
   }
 
-  next(err); // Pass the error to the next error handler
+  // Pass the error to the next error handler
+  next(err);
 }
 
 module.exports = {

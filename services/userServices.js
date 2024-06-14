@@ -5,6 +5,7 @@ const knex = require("knex");
 const knexConfig = require("../knexfile");
 const { errorLogger } = require("../middleware/requestLogger"); // Import errorLogger middleware
 const validator = require("validator");
+const jwt = require("jsonwebtoken");
 
 // Initialize Knex instance based on the development environment configuration
 const db = knex(knexConfig.development);
@@ -21,7 +22,9 @@ async function hashPassword(password) {
   }
 }
 
-// Function to create a new user with hashed password
+const sessionTimeout = 10 * 60; // 10 minutes in seconds
+
+// Function to create a new user
 async function createUser(username, email, password, re_password) {
   try {
     // Validate password match
@@ -44,12 +47,22 @@ async function createUser(username, email, password, re_password) {
     // Hash the password
     const hashedPassword = await hashPassword(password);
 
+    // Generate a session token
+    const sessionToken = jwt.sign(
+      { userId: email },
+      process.env.JWT_SECRET || "default_secret_key",
+      {
+        expiresIn: sessionTimeout,
+      }
+    );
+
     // Insert into database using Knex.js
     await db("users").insert({
       username,
       email,
       password: hashedPassword,
-      re_password: hashedPassword,
+      session_token: sessionToken, // Store session token in the database
+      session_expires_at: new Date(Date.now() + sessionTimeout * 1000), // Set session expiry
     });
 
     // Log request to history table
@@ -223,7 +236,7 @@ async function logHistory(method, url) {
     throw new Error("Failed to log history");
   }
 }
- 
+
 module.exports = {
   createUser,
   getUser,

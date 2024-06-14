@@ -1,6 +1,7 @@
 const express = require("express");
 const userService = require("../services/userServices");
-const { requestLogger } = require("../middleware/requestLogger");  
+const { requestLogger } = require("../middleware/requestLogger");
+const { authenticateUser } = require("../middleware/authMiddleware");
 const router = express.Router();
 
 // Middleware to log HTTP requests
@@ -17,11 +18,12 @@ router.post("/users", async (req, res) => {
     password,
     re_password
   );
-
+  // Middleware to authenticate user based on session token
+  router.use(authenticateUser);
   if (result.success) {
     res.status(201).json({ message: result.message });
   } else {
-    res.status(400).json({ errors: result.error });
+    res.status(400).json({ error: result.error });
   }
 });
 
@@ -36,7 +38,7 @@ router.put("/users/:id", async (req, res) => {
   if (result.success) {
     res.status(200).json({ message: result.message });
   } else {
-    res.status(400).json({ errors: result.error });
+    res.status(400).json({ error: result.error });
   }
 });
 
@@ -50,7 +52,7 @@ router.get("/users/:id", async (req, res) => {
   if (result.success) {
     res.status(200).json(result.user);
   } else {
-    res.status(404).json({ errors: result.error });
+    res.status(404).json({ error: result.error });
   }
 });
 
@@ -64,7 +66,7 @@ router.delete("/users/:id", async (req, res) => {
   if (result.success) {
     res.status(200).json({ message: result.message });
   } else {
-    res.status(404).json({ errors: result.error });
+    res.status(404).json({ error: result.error });
   }
 });
 
@@ -78,7 +80,7 @@ router.get("/users/search", async (req, res) => {
   if (result.success) {
     res.status(200).json(result.users);
   } else {
-    res.status(500).json({ errors: result.error });
+    res.status(500).json({ error: result.error });
   }
 });
 
@@ -90,7 +92,7 @@ router.get("/users", async (req, res) => {
   if (result.success) {
     res.status(200).json(result.users);
   } else {
-    res.status(500).json({ errors: result.error });
+    res.status(500).json({ error: result.error });
   }
 });
 
