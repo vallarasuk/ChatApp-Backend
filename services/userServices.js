@@ -252,6 +252,74 @@ async function logHistory(method, url) {
   }
 }
 
+// Function to authenticate a user by email and password
+async function authenticateUser(email, password) {
+  try {
+    // Check if the user exists by email
+    const user = await db("users").where({ email }).first();
+    console.log(user);
+    if (!user) {
+      return { success: false, error: "User not found" };
+    }
+
+    // Compare password hashes
+    const passwordMatch = await bcrypt.compare(password, user.password);
+
+    if (!passwordMatch) {
+      return { success: false, error: "Incorrect password" };
+    }
+
+    // Generate a new session token
+    const sessionToken = generate10DigitToken();
+
+    // Update user's session token and expiry
+    await db("users")
+      .where({ email })
+      .update({
+        session_token: sessionToken,
+        session_expires_at: new Date(Date.now() + sessionTimeout * 1000),
+      });
+
+    // Return user data with session token
+    const authenticatedUser = await db("users")
+      .where({ email })
+      .select("id", "username", "email", "session_token")
+      .first();
+
+    return {
+      success: true,
+      user: authenticatedUser,
+      message: "Authentication successful",
+    };
+  } catch (error) {
+    console.error("Error authenticating user:", error);
+    throw new Error("Authentication failed");
+  }
+}
+
+// Function to validate the session token
+async function validateSessionToken(sessionToken) {
+  try {
+    // Find the user with the given session token and check if the session is still valid
+    const user = await db("users")
+      .where({ session_token: sessionToken })
+      .andWhere("session_expires_at", ">", new Date())
+      .first();
+
+    if (user) {
+      // The session token is valid and not expired
+      return { isValid: true, user };
+    } else {
+      // The session token is not valid or expired
+      return { isValid: false };
+    }
+  } catch (error) {
+    console.error("Error validating session token:", error);
+    errorLogger(error); // Log error using errorLogger middleware
+    return { isValid: false };
+  }
+}
+
 module.exports = {
   createUser,
   getUser,
@@ -261,4 +329,6 @@ module.exports = {
   userExists,
   logHistory,
   updateUser,
+  authenticateUser,
+  validateSessionToken,
 };

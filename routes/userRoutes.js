@@ -98,4 +98,43 @@ router.get("/users", async (req, res) => {
   }
 });
 
+// Route for user login (POST /api/users/login)
+router.post("/users/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // Call userService to authenticate user
+    const result = await userService.authenticateUser(email, password);
+
+    if (result.success) {
+      res.status(200).json({ user: result.user, message: "Login successful" });
+    } else {
+      res.status(401).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error("Error logging in:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/api/users/validate-session", async (req, res) => {
+  const { sessionToken } = req.body;
+
+  try {
+    // Find the user with the given session token
+    const user = await userService.validateSessionToken({ session_token: sessionToken });
+
+    if (user) {
+      // The session token is valid
+      return res.json({ isValid: true });
+    } else {
+      // The session token is not valid
+      return res.json({ isValid: false });
+    }
+  } catch (error) {
+    console.error("Error validating session token:", error);
+    return res.status(500).json({ isValid: false });
+  }
+});
+
 module.exports = router;
