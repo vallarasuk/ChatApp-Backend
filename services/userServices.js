@@ -3,13 +3,13 @@ const path = require("path");
 const bcrypt = require("bcrypt");
 const knex = require("knex");
 const knexConfig = require("../knexfile");
-const { errorLogger } = require("../middleware/requestLogger"); // Import errorLogger middleware
+const { errorLogger } = require("../middleware/requestLogger");
 const validator = require("validator");
-const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 
 // Initialize Knex instance based on the development environment configuration
 const db = knex(knexConfig.development);
-const saltRounds = 10;
+const saltRounds = 5;
 
 // Function to hash the password
 async function hashPassword(password) {
@@ -23,6 +23,13 @@ async function hashPassword(password) {
 }
 
 const sessionTimeout = 10 * 60; // 10 minutes in seconds
+
+// Function to generate a 10-digit session token
+function generate10DigitToken() {
+  // Generate a 10-digit numeric token
+  const buffer = crypto.randomBytes(5);
+  return buffer.toString("hex").slice(0, 10); // Take first 10 characters of the hex string
+}
 
 // Function to create a new user
 async function createUser(username, email, password, re_password) {
@@ -39,7 +46,6 @@ async function createUser(username, email, password, re_password) {
 
     // Check if the user already exists by email or username
     const userExistenceMessage = await userExists(email, username);
-
     if (userExistenceMessage) {
       return { success: false, error: userExistenceMessage };
     }
@@ -47,28 +53,33 @@ async function createUser(username, email, password, re_password) {
     // Hash the password
     const hashedPassword = await hashPassword(password);
 
-    // Generate a session token
-    const sessionToken = jwt.sign(
-      { userId: email },
-      process.env.JWT_SECRET || "default_secret_key",
-      {
-        expiresIn: sessionTimeout,
-      }
-    );
+    // Generate a 10-digit session token
+    const sessionToken = generate10DigitToken();
 
     // Insert into database using Knex.js
     await db("users").insert({
       username,
       email,
       password: hashedPassword,
-      session_token: sessionToken, // Store session token in the database
+      re_password: password,
+      session_token: sessionToken, // Store the 10-digit session token
       session_expires_at: new Date(Date.now() + sessionTimeout * 1000), // Set session expiry
     });
+
+    // Fetch the newly created user from database
+    const newUser = await db("users")
+      .where({ email })
+      .select("id", "username", "email", "session_token")
+      .first();
 
     // Log request to history table
     await logHistory("POST", "/api/users");
 
-    return { success: true, message: "User created successfully" };
+    return {
+      success: true,
+      user: newUser,
+      message: "User created successfully",
+    };
   } catch (error) {
     console.error("Error creating user:", error);
     errorLogger(error); // Log error using errorLogger middleware
@@ -79,7 +90,11 @@ async function createUser(username, email, password, re_password) {
 // Function to get a user by ID
 async function getUser(userId) {
   try {
-    const user = await db("users").where({ id: userId }).first();
+    const user = await db("users")
+      .where({ id: userId })
+      .select("id", "username", "email", "session_token", "session_expires_at")
+      .first();
+
     if (user) {
       // Log request to history table
       await logHistory("GET", `/api/users/${userId}`);

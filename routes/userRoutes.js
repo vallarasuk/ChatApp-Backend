@@ -11,19 +11,23 @@ router.use(requestLogger);
 router.post("/users", async (req, res) => {
   const { username, email, password, re_password } = req.body;
 
-  // Call userService to create user
-  const result = await userService.createUser(
-    username,
-    email,
-    password,
-    re_password
-  );
-  // Middleware to authenticate user based on session token
-  router.use(authenticateUser);
-  if (result.success) {
-    res.status(201).json({ message: result.message });
-  } else {
-    res.status(400).json({ error: result.error });
+  try {
+    // Call userService to create user
+    const result = await userService.createUser(
+      username,
+      email,
+      password,
+      re_password
+    );
+
+    if (result.success) {
+      res.status(201).json({ user: result.user, message: result.message });
+    } else {
+      res.status(400).json({ error: result.error });
+    }
+  } catch (error) {
+    console.error("Error creating user:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -42,15 +46,13 @@ router.put("/users/:id", async (req, res) => {
   }
 });
 
-// Route to get a user by ID (GET /api/users/:id)
-router.get("/users/:id", async (req, res) => {
-  const userId = req.params.id;
-
-  // Call userService to get user
+// Route to get a user by ID (GET /api/users/:userId)
+router.get("/users/:userId", async (req, res) => {
+  const userId = req.params.userId;
   const result = await userService.getUser(userId);
 
   if (result.success) {
-    res.status(200).json(result.user);
+    res.status(200).json({ user: result.user });
   } else {
     res.status(404).json({ error: result.error });
   }

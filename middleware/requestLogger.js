@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { create } = require("domain");
 require('dotenv').config();
 
 // Log file paths
@@ -48,15 +49,15 @@ function errorLogger(err, req, res, next) {
     createLogsDirectoryIfNotExists();
 
     // Append error log to error log file
-    fs.appendFile(errorLogFilePath, logMessage, (err) => {
-      if (err) {
-        console.error("Error writing to error log:", err);
+    fs.appendFile(errorLogFilePath, logMessage, (appendErr) => {
+      if (appendErr) {
+        console.error("Error writing to error log:", appendErr);
       }
     });
   }
 
-  // Pass the error to the next error handler
-  next(err);
+  // Call the next error handling middleware or route handler
+  // next(err);
 }
 
 module.exports = {
