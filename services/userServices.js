@@ -32,7 +32,13 @@ function generate10DigitToken() {
 }
 
 // Function to create a new user
-async function createUser(username, email, password, re_password) {
+async function createUser(
+  username,
+  email,
+  password,
+  re_password,
+  mobile_number
+) {
   try {
     // Validate password match
     if (password !== re_password) {
@@ -60,6 +66,7 @@ async function createUser(username, email, password, re_password) {
     await db("users").insert({
       username,
       email,
+      mobile_number,
       password: hashedPassword,
       re_password: password,
       session_token: sessionToken, // Store the 10-digit session token
@@ -252,12 +259,24 @@ async function logHistory(method, url) {
   }
 }
 
-// Function to authenticate a user by email and password
-async function authenticateUser(email, password) {
+// Function to authenticate a user by email or mobile and password
+async function authenticateUser(emailOrMobile, password) {
   try {
-    // Check if the user exists by email
-    const user = await db("users").where({ email }).first();
-    console.log(user);
+    let user;
+    let isEmail = false;
+
+    // Determine if emailOrMobile is an email or a mobile number
+    if (/^\d+$/.test(emailOrMobile) && emailOrMobile.length === 10) {
+      // Check if the user exists by mobile number
+      user = await db("users").where({ mobile_number: emailOrMobile }).first();
+    } else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailOrMobile)) {
+      // Check if the user exists by email
+      user = await db("users").where({ email: emailOrMobile }).first();
+      isEmail = true;
+    } else {
+      return { success: false, error: "Invalid input format" };
+    }
+
     if (!user) {
       return { success: false, error: "User not found" };
     }
@@ -273,8 +292,11 @@ async function authenticateUser(email, password) {
     const sessionToken = generate10DigitToken();
 
     // Update user's session token and expiry
+    const updateField = isEmail
+      ? { email: emailOrMobile }
+      : { mobile_number: emailOrMobile };
     await db("users")
-      .where({ email })
+      .where(updateField)
       .update({
         session_token: sessionToken,
         session_expires_at: new Date(Date.now() + sessionTimeout * 1000),
@@ -282,7 +304,7 @@ async function authenticateUser(email, password) {
 
     // Return user data with session token
     const authenticatedUser = await db("users")
-      .where({ email })
+      .where(updateField)
       .select("id", "username", "email", "session_token")
       .first();
 
