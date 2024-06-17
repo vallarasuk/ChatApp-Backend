@@ -117,12 +117,14 @@ router.post("/users/login", async (req, res) => {
   }
 });
 
-app.post("/api/users/validate-session", async (req, res) => {
+router.post("/api/users/validate-session", async (req, res) => {
   const { sessionToken } = req.body;
 
   try {
     // Find the user with the given session token
-    const user = await userService.validateSessionToken({ session_token: sessionToken });
+    const user = await userService.validateSessionToken({
+      session_token: sessionToken,
+    });
 
     if (user) {
       // The session token is valid
