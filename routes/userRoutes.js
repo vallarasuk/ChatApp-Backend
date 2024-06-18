@@ -117,25 +117,50 @@ router.post("/users/login", async (req, res) => {
   }
 });
 
-router.post("/api/users/validate-session", async (req, res) => {
-  const { sessionToken } = req.body;
-
+router.post("/users/validate-session", async (req, res) => {
+  const { sessionToken, userId } = req.body;
   try {
-    // Find the user with the given session token
-    const user = await userService.validateSessionToken({
-      session_token: sessionToken,
-    });
+    // Validate the session token and userId
+    const { isValid, user } = await userService.validateSessionToken(
+      sessionToken,
+      userId
+    );
 
-    if (user) {
-      // The session token is valid
-      return res.json({ isValid: true });
+    if (isValid) {
+      // The session token and userId are valid
+      return res.json({ isValid: true, user });
     } else {
-      // The session token is not valid
+      // The session token is not valid or userId does not match
       return res.json({ isValid: false });
     }
   } catch (error) {
     console.error("Error validating session token:", error);
     return res.status(500).json({ isValid: false });
+  }
+});
+
+// Route to update default location
+router.put("/api/users/update-location", async (req, res) => {
+  const { sessionToken, defaultLocation } = req.body;
+
+  try {
+    // Update the user's default location
+    const updatedUser = await userService.updateUserLocation(
+      user.id,
+      defaultLocation
+    );
+
+    if (updatedUser) {
+      return res.json({
+        message: "Location updated successfully",
+        user: updatedUser,
+      });
+    } else {
+      return res.status(400).json({ error: "Failed to update location" });
+    }
+  } catch (error) {
+    console.error("Error updating location:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

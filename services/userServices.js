@@ -319,26 +319,48 @@ async function authenticateUser(emailOrMobile, password) {
   }
 }
 
-// Function to validate the session token
-async function validateSessionToken(sessionToken) {
+async function validateSessionToken(sessionToken, userId) {
   try {
-    // Find the user with the given session token and check if the session is still valid
+    // Find the user with the given session token and userId
     const user = await db("users")
-      .where({ session_token: sessionToken })
-      .andWhere("session_expires_at", ">", new Date())
+      .where({ session_token: sessionToken, id: userId })
+      .where("session_expires_at", ">", new Date())
       .first();
 
     if (user) {
-      // The session token is valid and not expired
+      // Session token is valid and user ID matches
       return { isValid: true, user };
     } else {
-      // The session token is not valid or expired
+      // Session token is not valid or user ID does not match
       return { isValid: false };
     }
   } catch (error) {
     console.error("Error validating session token:", error);
-    errorLogger(error); // Log error using errorLogger middleware
+    // Log the error or handle as needed
     return { isValid: false };
+  }
+}
+
+async function updateUserLocation(userId, defaultLocation) {
+  try {
+    // Find the user by primary key
+    const user = await db.User.findByPk(userId);
+
+    if (user) {
+      // Update the user's default location
+      user.default_location = defaultLocation;
+      // Save the updated user object back to the database
+      await user.save();
+      return user;
+    } else {
+      // If the user is not found, throw an error
+      throw new Error("User not found");
+    }
+  } catch (error) {
+    // Log the error for debugging purposes
+    console.error("Error updating user location:", error);
+    // Re-throw the error to be handled by the calling function
+    throw error;
   }
 }
 
@@ -353,4 +375,5 @@ module.exports = {
   updateUser,
   authenticateUser,
   validateSessionToken,
+  updateUserLocation,
 };
