@@ -12,7 +12,7 @@ yarn-error.log*
 .env
 
 # Knex migration and seeds
-knexfile.js
+# knexfile.js
 
 # Build output
 dist/
