@@ -5,7 +5,7 @@ module.exports = {
         host: 'localhost',
         user: 'root',
         password: 'new_password',
-        database: 'chatapp'
+        database: 'chat'
       },
       migrations: {
         directory: __dirname + '/db/migrations'

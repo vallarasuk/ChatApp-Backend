@@ -1,5 +1,8 @@
 const express = require("express");
 const userRoutes = require("./routes/userRoutes");
+const categoryRoutes = require("./routes/userCategoryRoutes");
+const ageCategoryRoutes = require("./routes/ageCategoryRoutes")
+
 const knex = require("knex");
 const knexfile = require("./knexfile");
 const { requestLogger, errorLogger } = require("./middleware/requestLogger");
@@ -15,6 +18,8 @@ app.use(requestLogger);
 
 // Use the user routes
 app.use("/api", userRoutes);
+app.use("/api", categoryRoutes);
+app.use("/api", ageCategoryRoutes);
 
 // Connect to the database using Knex
 const db = knex(knexfile.development);
